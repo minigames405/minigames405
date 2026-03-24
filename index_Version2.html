@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>🎮 Minigames405</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB_4jxQTOkz4ir5rLwVB2i5EbDRaKvcXVM",
+  authDomain: "minigames405.firebaseapp.com",
+  databaseURL: "https://minigames405-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "minigames405",
+  storageBucket: "minigames405.firebasestorage.app",
+  messagingSenderId: "88335991174",
+  appId: "1:88335991174:web:ecc08dae94484344e4ac07"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+
+window.fbSaveUser = async (user) => { await set(ref(db, 'users/' + user.code), user); };
+window.fbLoadUsers = async () => { const snap = await get(ref(db, 'users')); return snap.exists() ? Object.values(snap.val()).filter(Boolean) : []; };
+window.fbUpdateUser = async (code, data) => { await update(ref(db, 'users/' + code), data); };
+window.fbDeleteUser = async (code) => { await set(ref(db, 'users/' + code), null); };
+window.fbSaveGames = async (games) => { await set(ref(db, 'games'), games.length ? games : null); };
+window.fbLoadGames = async () => { const snap = await get(ref(db, 'games')); return snap.exists() ? Object.values(snap.val()).filter(Boolean) : []; };
+window.fbSaveNews = async (news) => { await set(ref(db, 'news'), news.length ? news : null); };
+window.fbLoadNews = async () => { const snap = await get(ref(db, 'news')); return snap.exists() ? Object.values(snap.val()).filter(Boolean) : []; };
+window.fbWatchUsers = (callback) => { onValue(ref(db, 'users'), snap => { callback(snap.exists() ? Object.values(snap.val()).filter(Boolean) : []); }); };
+window.dispatchEvent(new CustomEvent('fb-ready'));
+</script>
+<style>
+:root { --bg: #0d0d14; --surface: #13131f; --card: #1a1a2e; --border: #2a2a45; --accent: #00f5a0; --accent2: #f500b8; --accent3: #ffd60a; --text: #e8e8f0; --muted: #6b6b8a; --radius: 12px; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(0,245,160,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,160,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
+header{display:flex;align-items:center;justify-content:space-between;padding:1.2rem 2.5rem;border-bottom:1px solid var(--border);background:rgba(13,13,20,0.9);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;}
+.logo{font-size:1.4rem;font-weight:800;letter-spacing:-0.02em}
+.logo span{color:var(--accent)}
+.header-actions{display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;}
+.mode-toggle{display:flex;align-items:center;gap:0.5rem;background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:0.25rem;}
+.mode-btn{background:none;border:none;color:var(--muted);padding:0.35rem 0.75rem;border-radius:100px;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.7rem;transition:all 0.2s;}
+.mode-btn.active{background:var(--card);color:var(--accent);border:1px solid var(--border)}
+.admin-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:0.5rem 1rem;border-radius:6px;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.75rem;transition:all 0.2s;display:flex;align-items:center;gap:0.4rem;}
+.admin-btn:hover{border-color:var(--accent);color:var(--accent)}
+#user-badge{display:flex;align-items:center;gap:0.5rem;background:var(--card);border:1px solid var(--border);border-radius:100px;padding:0.3rem 0.85rem;cursor:pointer;transition:all 0.2s;font-size:0.8rem;}
+#user-badge:hover{border-color:var(--accent);color:var(--accent)}
+#user-badge .ub-role{font-family:'Space Mono',monospace;font-size:0.6rem;padding:0.1rem 0.4rem;border-radius:4px;background:rgba(0,245,160,0.12);color:var(--accent);}
+#user-badge .ub-role.admin{background:rgba(245,0,184,0.15);color:var(--accent2);}
+#news-banner{background:linear-gradient(135deg,rgba(0,245,160,0.08),rgba(74,243,255,0.08));border-bottom:1px solid var(--border);padding:0.85rem 2.5rem;position:relative;z-index:1;display:none;}
+#news-banner.show{display:block}
+.news-item{display:flex;align-items:center;gap:0.5rem;background:rgba(0,245,160,0.05);border:1px solid rgba(0,245,160,0.2);border-radius:8px;padding:0.5rem 1rem;margin-bottom:0.5rem;white-space:normal;font-size:0.8rem;}
+.news-icon{font-size:1rem;flex-shrink:0}
+.news-text{color:var(--accent)}
+.news-time{color:var(--muted);font-family:'Space Mono',monospace;font-size:0.65rem;margin-left:auto;white-space:nowrap;}
+.hero{text-align:center;padding:3.5rem 2rem 2rem;position:relative;z-index:1;}
+.hero h1{font-size:clamp(2.2rem,5vw,4rem);font-weight:800;line-height:1.1;margin-bottom:1rem}
+.hero h1 .hi{color:var(--accent)}.hero h1 .low{color:var(--accent2)}
+.hero p{color:var(--muted);font-size:1rem;max-width:480px;margin:0 auto 2rem;line-height:1.7}
+.game-count{display:inline-flex;align-items:center;gap:0.5rem;background:var(--card);border:1px solid var(--border);padding:0.4rem 1rem;border-radius:100px;font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--accent);}
+.games-section{padding:2rem 2.5rem 4rem;position:relative;z-index:1}
+.section-title{font-size:1.1rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);margin-bottom:1.5rem}
+#games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.25rem;}
+body.touch-mode #games-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;}
+.game-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:0;overflow:hidden;cursor:pointer;transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s;position:relative;}
+.game-card:hover{transform:translateY(-4px);border-color:var(--accent);box-shadow:0 0 24px rgba(0,245,160,0.15);}
+.game-preview{height:130px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#0a0a16;}
+.game-emoji-big{font-size:3.5rem;filter:drop-shadow(0 0 20px rgba(255,255,255,0.3));position:absolute;transition:opacity 0.3s;z-index:2;}
+.game-card:hover .game-emoji-big{opacity:0}
+.game-info{padding:1rem 1.1rem}
+.game-title{font-weight:700;font-size:0.95rem;margin-bottom:0.3rem;display:flex;align-items:center;gap:0.4rem}
+.game-tag{font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;display:inline-flex;align-items:center;gap:0.3rem;}
+.tag-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:0.6;display:inline-block;}
+#now-playing-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(13,13,20,0.95);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:0.75rem 2rem;align-items:center;justify-content:space-between;gap:1rem;animation:slideUp 0.3s ease;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+#now-playing-bar.visible{display:flex}
+.np-left{display:flex;align-items:center;gap:0.75rem}
+.np-pulse{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1.5s infinite;flex-shrink:0;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)}}
+.np-label{font-size:0.7rem;color:var(--muted);font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:0.08em}
+.np-title{font-weight:700;font-size:0.95rem;display:flex;align-items:center;gap:0.4rem}
+.np-actions{display:flex;gap:0.5rem}
+.np-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:0.4rem 0.85rem;border-radius:6px;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.7rem;transition:all 0.2s;}
+.np-btn:hover{border-color:var(--accent);color:var(--accent)}
+.np-btn.primary{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
+.modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(5,5,10,0.95);backdrop-filter:blur(10px);align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;width:min(95vw,900px);max-height:95vh;display:flex;flex-direction:column;overflow:hidden;animation:popIn 0.25s ease;}
+@keyframes popIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:0.85rem 1rem 0.85rem 1.5rem;border-bottom:1px solid var(--border);flex-shrink:0;min-height:64px;gap:0.5rem;}
+.modal-title{font-weight:800;font-size:1.15rem;display:flex;align-items:center;gap:0.5rem;}
+.close-btn{background:rgba(13,13,20,0.9);border:2px solid var(--border);color:var(--text);font-size:1.2rem;cursor:pointer;width:44px;height:44px;min-width:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-weight:700;flex-shrink:0;}
+.close-btn:hover{background:rgba(245,0,184,0.2);color:var(--accent2);border-color:var(--accent2)}
+.modal-body{flex:1;overflow:auto;position:relative;background:#0a0a16}
+.modal-body iframe{width:100%;height:100%;border:none;min-height:500px;display:block}
+.form-group{display:flex;flex-direction:column;gap:0.4rem}
+.form-group label{font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)}
+.form-group input,.form-group textarea{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.75rem 1rem;color:var(--text);font-family:'Syne',sans-serif;font-size:0.95rem;outline:none;transition:border-color 0.2s;resize:vertical;}
+.form-group input:focus,.form-group textarea:focus{border-color:var(--accent)}
+.btn-primary{background:var(--accent);color:#000;border:none;padding:0.85rem;border-radius:8px;font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;transition:all 0.2s;width:100%;}
+.btn-primary:hover{background:#00e090;transform:translateY(-1px)}
+.btn-secondary{background:var(--surface);color:var(--muted);border:1px solid var(--border);padding:0.75rem;border-radius:8px;font-family:'Syne',sans-serif;font-size:0.9rem;cursor:pointer;transition:all 0.2s;width:100%;}
+.btn-secondary:hover{border-color:var(--muted);color:var(--text)}
+.success-msg{background:rgba(0,245,160,0.1);border:1px solid rgba(0,245,160,0.3);color:var(--accent);padding:0.75rem 1rem;border-radius:8px;font-size:0.85rem;display:none;text-align:center;}
+.error-msg{color:var(--accent2);font-size:0.8rem;font-family:'Space Mono',monospace;display:none}
+.admin-section-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 1.5rem;flex-wrap:wrap;}
+.admin-tab{background:none;border:none;color:var(--muted);padding:0.75rem 1rem;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.75rem;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.2s;}
+.admin-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.admin-panel{display:none;max-height:calc(90vh - 180px);overflow-y:auto;padding:1.2rem 1.5rem;}
+.admin-panel.active{display:block;}
+.user-mgmt-list{display:flex;flex-direction:column;gap:0.5rem;}
+.user-mgmt-row{display:flex;align-items:center;gap:0.75rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.85rem;flex-wrap:wrap;}
+.user-mgmt-name{flex:1;font-size:0.85rem;display:flex;align-items:center;gap:0.4rem;min-width:200px;}
+.user-role-badge{font-size:0.6rem;font-family:'Space Mono',monospace;padding:0.15rem 0.4rem;border-radius:4px;}
+.user-role-badge.admin{background:rgba(245,0,184,0.18);color:var(--accent2)}
+.user-role-badge.user{background:rgba(0,245,160,0.1);color:var(--accent)}
+.umr-actions{display:flex;gap:0.35rem;flex-shrink:0;flex-wrap:wrap;}
+.umr-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:0.25rem 0.55rem;border-radius:5px;cursor:pointer;font-size:0.65rem;font-family:'Space Mono',monospace;transition:all 0.2s;}
+.umr-btn:hover{border-color:var(--accent);color:var(--accent)}
+.umr-btn.danger:hover{border-color:var(--accent2);color:var(--accent2)}
+footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:1.5rem 2.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;background:rgba(13,13,20,0.6);}
+.footer-credit{font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--muted);display:flex;align-items:center;gap:0.5rem;}
+.footer-credit span{color:var(--accent);font-weight:700;}
+.footer-contact{font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--muted);}
+.footer-contact a{color:var(--accent);text-decoration:none;}
+.hamburger-btn{display:none;background:none;border:1px solid var(--border);color:var(--text);width:40px;height:40px;border-radius:8px;cursor:pointer;font-size:1.2rem;align-items:center;justify-content:center;flex-shrink:0;}
+.empty-state{grid-column:1/-1;text-align:center;padding:4rem 2rem;color:var(--muted);font-family:'Space Mono',monospace;font-size:0.85rem;}
+.empty-state .em{font-size:3rem;display:block;margin-bottom:1rem}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.game-card{animation:fadeIn 0.4s ease both}
+.btn-add{background:var(--accent);color:#000;border:none;padding:0.85rem;border-radius:8px;font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;transition:background 0.2s,transform 0.15s;}
+.btn-add:hover{background:#00e090;transform:translateY(-1px)}
+.deletable-list{display:flex;flex-direction:column;gap:0.5rem;max-height:300px;overflow-y:auto;}
+.deletable-item{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.85rem;}
+.delete-item-btn{background:rgba(245,0,184,0.15);border:1px solid var(--accent2);color:var(--accent2);padding:0.3rem 0.65rem;border-radius:6px;cursor:pointer;font-size:0.75rem;font-family:'Space Mono',monospace;transition:all 0.2s;}
+.delete-item-btn:hover{background:var(--accent2);color:#fff}
+.news-form{display:flex;flex-direction:column;gap:1rem;padding:1.2rem;}
+#pin-screen{padding:1.5rem;display:flex;flex-direction:column;gap:1rem;}
+.pin-input-row{display:flex;gap:0.5rem}
+#pin-input{flex:1}
+.btn-unlock{background:var(--accent2);color:#fff;border:none;padding:0.75rem 1.2rem;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;cursor:pointer;}
+@media(max-width:640px){
+  header{padding:0.9rem 1.1rem;}
+  .header-actions .mode-toggle,.header-actions .admin-btn,.header-actions #user-badge{display:none!important;}
+  .hamburger-btn{display:flex;}
+  .games-section{padding:1.2rem 1rem 5rem;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🕹️ Minigames<span>405</span></div>
+  <div class="header-actions">
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="btn-pc" onclick="setMode('pc')">💻 PC</button>
+      <button class="mode-btn" id="btn-touch" onclick="setMode('touch')">📱 Touch</button>
+    </div>
+    <button class="admin-btn" onclick="openAdmin()">🔐 Admin</button>
+    <button class="admin-btn" onclick="openRank()">🏆 Rangliste</button>
+    <button class="admin-btn" onclick="openSettings()">⚙️ Einstellungen</button>
+    <div id="user-badge" onclick="openAuthOrProfile()">
+      <span id="ub-name">🎮 Gast</span>
+      <span id="ub-role" class="ub-role">GAST</span>
+    </div>
+    <button class="hamburger-btn" onclick="openMobileMenu()">☰</button>
+  </div>
+</header>
+
+<div id="news-banner">
+  <div id="news-items"></div>
+</div>
+
+<div class="hero">
+  <h1><span class="hi">Spiel</span> was du<br><span class="low">willst.</span></h1>
+  <p>Deine persönliche Sammlung an Mini-Spielen. Klicke auf ein Spiel und leg sofort los.</p>
+  <div class="game-count">⚡ <span id="count">0</span> Spiele verfügbar</div>
+</div>
+
+<div class="games-section">
+  <div class="section-title">— Alle Spiele</div>
+  <div id="games-grid"></div>
+</div>
+
+<div id="now-playing-bar">
+  <div class="np-left">
+    <div class="np-pulse"></div>
+    <div>
+      <div class="np-label">Gerade gespielt</div>
+      <div class="np-title" id="np-title">–</div>
+    </div>
+  </div>
+  <div class="np-actions">
+    <button class="np-btn primary" onclick="reopenCurrentGame()">▶ Weiterspielen</button>
+    <button class="np-btn" onclick="hideBar()">✕</button>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-credit">🕹️ Erstellt von <span>Lukas Thiede</span></div>
+  <div class="footer-contact">💬 Fragen? <a href="mailto:Luke.thiede@icloud.com">Luke.thiede@icloud.com</a></div>
+</footer>
+
+<div class="modal-overlay" id="play-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="play-title">Spiel</div>
+      <button class="close-btn" onclick="closePlay()">✕</button>
+    </div>
+    <div class="modal-body" id="play-body"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">👤 Anmelden</div>
+      <button class="close-btn" onclick="closeAuth()">✕</button>
+    </div>
+    <div id="auth-login" style="padding:1.8rem;display:flex;flex-direction:column;gap:1.2rem;">
+      <div class="form-group">
+        <label>Benutzername</label>
+        <input id="login-user" type="text" placeholder="Benutzername…"/>
+      </div>
+      <div class="form-group">
+        <label>Passwort</label>
+        <input id="login-pass" type="password" placeholder="••••••••"/>
+      </div>
+      <div class="error-msg" id="login-err">❌ Falscher Benutzername oder Passwort!</div>
+      <button class="btn-primary" onclick="doLogin()">→ Anmelden</button>
+      <button class="btn-secondary" onclick="doRegister()">📝 Registrieren</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="rank-modal">
+  <div class="modal-box" style="max-width:580px">
+    <div class="modal-header">
+      <div class="modal-title">🏆 Rangliste</div>
+      <button class="close-btn" onclick="closeRank()">✕</button>
+    </div>
+    <div id="rank-list" style="padding:1.5rem;max-height:70vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="admin-modal">
+  <div class="modal-box" style="max-height:90vh;">
+    <div class="modal-header">
+      <div class="modal-title">🔐 Admin Panel</div>
+      <button class="close-btn" onclick="closeAdmin()">✕</button>
+    </div>
+    <div id="pin-screen" style="padding:1.5rem;">
+      <p>Admin-Code eingeben:</p>
+      <div class="pin-input-row">
+        <input id="pin-input" type="password" placeholder="••••••••" style="font-family:'Space Mono',monospace;font-size:1rem;" onkeydown="if(event.key==='Enter')checkPin()"/>
+        <button class="btn-unlock" onclick="checkPin()">Unlock</button>
+      </div>
+      <div class="error-msg" id="pin-error">❌ Falscher Code!</div>
+    </div>
+    <div id="admin-content" style="display:none;">
+      <div class="admin-section-tabs">
+        <button class="admin-tab active" onclick="switchAdminTab('games')">🎮 Spiele</button>
+        <button class="admin-tab" onclick="switchAdminTab('users')">👥 Nutzer</button>
+        <button class="admin-tab" onclick="switchAdminTab('news')">📰 News</button>
+      </div>
+      <div class="admin-panel active" id="admin-games" style="padding:1.5rem;">
+        <div class="form-group" style="margin-bottom:1rem">
+          <label>Emoji</label>
+          <input id="f-emoji" type="text" placeholder="🎮" maxlength="4"/>
+        </div>
+        <div class="form-group" style="margin-bottom:1rem">
+          <label>Titel</label>
+          <input id="f-title" type="text" placeholder="Spiel-Name"/>
+        </div>
+        <div class="form-group" style="margin-bottom:1rem">
+          <label>HTML / URL</label>
+          <textarea id="f-code" rows="4" placeholder="HTML-Code oder URL…"></textarea>
+        </div>
+        <div class="form-group" style="margin-bottom:1rem">
+          <label>Tag</label>
+          <input id="f-tag" type="text" placeholder="Arcade, Puzzle, …"/>
+        </div>
+        <div class="success-msg" id="add-success">✅ Spiel hinzugefügt!</div>
+        <button class="btn-add" onclick="addGame()" style="margin-bottom:1.5rem">+ Spiel hinzufügen</button>
+        <div style="border-top:1px solid var(--border);padding-top:1.2rem">
+          <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.75rem">— Eigene Spiele löschen</div>
+          <div class="deletable-list" id="deletable-list"></div>
+        </div>
+      </div>
+      <div class="admin-panel" id="admin-users" style="padding:1.2rem 1.5rem;">
+        <div style="margin-bottom:0.75rem;font-size:0.8rem;color:var(--muted);font-family:'Space Mono',monospace;">Alle registrierten Nutzer</div>
+        <div class="user-mgmt-list" id="user-mgmt-list"></div>
+      </div>
+      <div class="admin-panel" id="admin-news" style="padding:1.2rem 1.5rem;">
+        <div class="news-form">
+          <div class="form-group">
+            <label>News-Titel</label>
+            <input id="news-title" type="text" placeholder="z.B. Neue Features!"/>
+          </div>
+          <div class="form-group">
+            <label>News-Text</label>
+            <input id="news-text" type="text" placeholder="Beschreibung…"/>
+          </div>
+          <div class="success-msg" id="news-success">✅ News hinzugefügt!</div>
+          <button class="btn-add" onclick="addNews()">+ News veröffentlichen</button>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:1.2rem;margin-top:1.2rem;">
+          <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.75rem">— Alle News</div>
+          <div id="news-list" style="display:flex;flex-direction:column;gap:0.5rem;max-height:300px;overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title">⚙️ Einstellungen</div>
+      <button class="close-btn" onclick="closeSettings()">✕</button>
+    </div>
+    <div style="padding:1.5rem;">
+      <div style="font-size:0.8rem;color:var(--accent);margin-bottom:1rem">Diese Seite wird weiterhin entwickelt 🚀</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let games = [];
+let news = [];
+let users = [];
+let currentUser = JSON.parse(localStorage.getItem('arcade_session') || 'null');
+let adminUnlocked = false;
+let currentGame = null;
+let touchMode = localStorage.getItem('arcadeMode') === 'touch';
+
+const ADMIN_CODE = 'LukTh-221212';
+
+const builtins = [
+  { id:'builtin-snake',    emoji:'🐍', title:'Snake',         tag:'Klassiker', code:'snake',    points: 10 },
+  { id:'builtin-breakout', emoji:'🧱', title:'Breakout',      tag:'Arcade',    code:'breakout', points: 15 },
+  { id:'builtin-memory',   emoji:'��', title:'Memory',        tag:'Puzzle',    code:'memory',   points: 8  },
+  { id:'builtin-reaction', emoji:'⚡', title:'Reaktionstest', tag:'Reflex',    code:'reaction', points: 5  },
+  { id:'builtin-tetris',   emoji:'🟦', title:'Tetris',        tag:'Klassiker', code:'tetris',   points: 12 },
+  { id:'builtin-blockblast',emoji:'🎯', title:'Block Blast',   tag:'Puzzle',    code:'blockblast', points: 18 },
+  { id:'builtin-2048',     emoji:'🔢', title:'2048',          tag:'Puzzle',    code:'2048',     points: 20 },
+  { id:'builtin-chess',    emoji:'♟️', title:'Schach',        tag:'Strategie', code:'chess',    points: 25 },
+  { id:'builtin-tictactoe',emoji:'❌', title:'Tic Tac Toe',   tag:'Klassiker', code:'tictactoe',points: 8  },
+];
+
+function hashSimple(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) { h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; }
+  return h.toString(36);
+}
+
+function generateCode(username) {
+  const prefix = username.slice(0,5).replace(/[^a-zA-Z]/g,'').padEnd(3,'X');
+  const num = Math.floor(100000 + Math.random() * 900000);
+  return prefix + '-' + num;
+}
+
+function updateUserBadge() {
+  document.getElementById('ub-name').textContent = currentUser ? currentUser.username : '🎮 Gast';
+  document.getElementById('ub-role').textContent = currentUser ? currentUser.role.toUpperCase() : 'GAST';
+  document.getElementById('ub-role').className = currentUser && currentUser.role === 'admin' ? 'ub-role admin' : 'ub-role';
+}
+
+async function saveGames() {
+  if (window.fbSaveGames) await window.fbSaveGames(games);
+  localStorage.setItem('minigames', JSON.stringify(games));
+}
+
+async function saveNews() {
+  if (window.fbSaveNews) await window.fbSaveNews(news);
+  localStorage.setItem('minigames_news', JSON.stringify(news));
+}
+
+async function loadFromFirebase() {
+  try {
+    const [fbUsers, fbGames, fbNews] = await Promise.all([
+      window.fbLoadUsers(),
+      window.fbLoadGames(),
+      window.fbLoadNews()
+    ]);
+    users = fbUsers || [];
+    games = fbGames || [];
+    news = fbNews || [];
+  } catch(e) {
+    console.warn('Firebase load error, using localStorage:', e);
+    users = JSON.parse(localStorage.getItem('arcade_users') || '[]');
+    games = JSON.parse(localStorage.getItem('minigames') || '[]');
+    news = JSON.parse(localStorage.getItem('minigames_news') || '[]');
+  }
+  render();
+  renderNews();
+  updateUserBadge();
+}
+
+window.addEventListener('fb-ready', () => { loadFromFirebase(); });
+setTimeout(() => {
+  if (users.length === 0) {
+    users = JSON.parse(localStorage.getItem('arcade_users') || '[]');
+    games = JSON.parse(localStorage.getItem('minigames') || '[]');
+    news = JSON.parse(localStorage.getItem('minigames_news') || '[]');
+    render();
+    renderNews();
+    updateUserBadge();
+  }
+}, 4000);
+
+if (touchMode) {
+  document.body.classList.add('touch-mode');
+  document.getElementById('btn-pc').classList.remove('active');
+  document.getElementById('btn-touch').classList.add('active');
+}
+
+function setMode(mode) {
+  touchMode = mode === 'touch';
+  localStorage.setItem('arcadeMode', mode);
+  document.body.classList.toggle('touch-mode', touchMode);
+  document.getElementById('btn-pc').classList.toggle('active', !touchMode);
+  document.getElementById('btn-touch').classList.toggle('active', touchMode);
+}
+
+function render() {
+  const grid = document.getElementById('games-grid');
+  const all = [...builtins, ...games];
+  document.getElementById('count').textContent = all.length;
+  grid.innerHTML = '';
+  if (all.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><span class="em">🎮</span>Noch keine Spiele!</div>';
+    return;
+  }
+  all.forEach((g, i) => {
+    const card = document.createElement('div');
+    card.className = 'game-card';
+    card.style.animationDelay = (i * 0.06) + 's';
+    card.innerHTML = `
+      <div class="game-preview">
+        <div class="game-emoji-big">${g.emoji}</div>
+      </div>
+      <div class="game-info">
+        <div class="game-title">${g.emoji} ${g.title}</div>
+        <div class="game-tag"><span class="tag-dot"></span>${g.tag||'Mini-Spiel'}</div>
+      </div>
+    `;
+    card.addEventListener('click', () => openPlay(g));
+    grid.appendChild(card);
+  });
+}
+
+function renderNews() {
+  const banner = document.getElementById('news-banner');
+  const items = document.getElementById('news-items');
+  if (!news || news.length === 0) {
+    banner.classList.remove('show');
+    return;
+  }
+  banner.classList.add('show');
+  items.innerHTML = news.map(n => `
+    <div class="news-item">
+      <span class="news-icon">📢</span>
+      <span class="news-text">${n.title}: ${n.text}</span>
+      <span class="news-time">${new Date(n.date).toLocaleDateString('de')}</span>
+    </div>
+  `).join('');
+}
+
+function openPlay(g) {
+  currentGame = g;
+  document.getElementById('play-title').textContent = `${g.emoji} ${g.title}`;
+  const gameMap = {
+    snake: snakeGame, breakout: breakoutGame, memory: memoryGame, reaction: reactionGame,
+    tetris: tetrisGame, blockblast: blockBlastGame, '2048': game2048, chess: chessGame, tictactoe: ticTacToeGame
+  };
+  let html = gameMap[g.code] ? gameMap[g.code]() : g.code && g.code.startsWith('http') ? `<iframe src="${g.code}"></iframe>` : `<div style="padding:2rem;text-align:center">Spiel nicht gefunden</div>`;
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  document.getElementById('play-body').innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none"></iframe>`;
+  document.getElementById('play-modal').classList.add('open');
+}
+
+function closePlay() {
+  document.getElementById('play-modal').classList.remove('open');
+  document.getElementById('play-body').innerHTML = '';
+}
+
+function openAuth() { document.getElementById('auth-modal').classList.add('open'); }
+function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); }
+
+function doLogin() {
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const found = users.find(u => (u.username.toLowerCase() === user.toLowerCase() || u.code === user) && u.passwordHash === hashSimple(pass));
+  if (!found) {
+    document.getElementById('login-err').style.display = 'block';
+    setTimeout(() => { document.getElementById('login-err').style.display = 'none'; }, 2500);
+    return;
+  }
+  currentUser = { username: found.username, role: found.role, code: found.code };
+  localStorage.setItem('arcade_session', JSON.stringify(currentUser));
+  updateUserBadge();
+  closeAuth();
+}
+
+async function doRegister() {
+  const user = prompt('Benutzername:');
+  if (!user || user.length < 3) return alert('Min 3 Zeichen!');
+  const pass = prompt('Passwort:');
+  if (!pass || pass.length < 4) return alert('Min 4 Zeichen!');
+  if (users.find(u => u.username.toLowerCase() === user.toLowerCase())) return alert('Name vergeben!');
+  const code = generateCode(user);
+  const newUser = { username: user, passwordHash: hashSimple(pass), code, role: 'user', points: 0, gamesPlayed: {} };
+  users.push(newUser);
+  if (window.fbSaveUser) await window.fbSaveUser(newUser);
+  currentUser = { username: user, role: 'user', code };
+  localStorage.setItem('arcade_session', JSON.stringify(currentUser));
+  updateUserBadge();
+  closeAuth();
+  alert('🎉 Willkommen ' + user + '! Code: ' + code);
+}
+
+function openAuthOrProfile() {
+  if (currentUser) {
+    if (confirm('Als "' + currentUser.username + '" angemeldet. Abmelden?')) {
+      currentUser = null;
+      localStorage.removeItem('arcade_session');
+      updateUserBadge();
+    }
+  } else {
+    openAuth();
+  }
+}
+
+function openRank() {
+  if (window.fbLoadUsers) {
+    window.fbLoadUsers().then(u => { users = u; renderRank(); });
+  } else {
+    renderRank();
+  }
+  document.getElementById('rank-modal').classList.add('open');
+}
+
+function closeRank() { document.getElementById('rank-modal').classList.remove('open'); }
+
+function renderRank() {
+  const ranked = [...users].sort((a, b) => (b.points || 0) - (a.points || 0));
+  const list = document.getElementById('rank-list');
+  if (ranked.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted)">📭 Noch keine Spieler</div>';
+    return;
+  }
+  list.innerHTML = ranked.map((u, i) => `
+    <div style="padding:0.75rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:0.5rem">
+      <strong>#${i+1} ${u.username}</strong> — ${u.points || 0} Pkt
+    </div>
+  `).join('');
+}
+
+function openAdmin() {
+  document.getElementById('admin-modal').classList.add('open');
+  if (!adminUnlocked) {
+    document.getElementById('pin-screen').style.display = '';
+    document.getElementById('admin-content').style.display = 'none';
+    setTimeout(() => document.getElementById('pin-input').focus(), 100);
+  } else {
+    refreshDeleteList();
+    renderUserMgmt();
+    renderNewsList();
+  }
+}
+
+function closeAdmin() { document.getElementById('admin-modal').classList.remove('open'); }
+
+function checkPin() {
+  if (document.getElementById('pin-input').value === ADMIN_CODE) {
+    adminUnlocked = true;
+    document.getElementById('pin-screen').style.display = 'none';
+    document.getElementById('admin-content').style.display = '';
+    refreshDeleteList();
+    renderUserMgmt();
+    renderNewsList();
+  } else {
+    document.getElementById('pin-error').style.display = 'block';
+    document.getElementById('pin-input').value = '';
+    setTimeout(() => { document.getElementById('pin-error').style.display = 'none'; }, 2000);
+  }
+}
+
+function switchAdminTab(tab) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.admin-tab:nth-child(${['games','users','news'].indexOf(tab)+1})`).classList.add('active');
+  document.getElementById(`admin-${tab}`).classList.add('active');
+}
+
+async function addGame() {
+  const emoji = document.getElementById('f-emoji').value.trim() || '🎮';
+  const title = document.getElementById('f-title').value.trim();
+  const code = document.getElementById('f-code').value.trim();
+  const tag = document.getElementById('f-tag').value.trim();
+  if (!title || !code) return;
+  games.push({ id: 'g-' + Date.now(), emoji, title, code, tag });
+  await saveGames();
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-code').value = '';
+  document.getElementById('f-emoji').value = '';
+  document.getElementById('f-tag').value = '';
+  document.getElementById('add-success').style.display = 'block';
+  setTimeout(() => { document.getElementById('add-success').style.display = 'none'; }, 2500);
+  render();
+  refreshDeleteList();
+}
+
+async function deleteGame(id) {
+  if (!confirm('Spiel wirklich löschen?')) return;
+  games = games.filter(g => g.id !== id);
+  await saveGames();
+  render();
+  refreshDeleteList();
+}
+
+function refreshDeleteList() {
+  const list = document.getElementById('deletable-list');
+  list.innerHTML = games.length ? games.map(g => `
+    <div class="deletable-item">
+      <span>${g.emoji} ${g.title}</span>
+      <button class="delete-item-btn" onclick="deleteGame('${g.id}')">🗑</button>
+    </div>
+  `).join('') : '<div style="text-align:center;padding:1rem;color:var(--muted)">Keine Spiele</div>';
+}
+
+function renderUserMgmt() {
+  const list = document.getElementById('user-mgmt-list');
+  if (users.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--muted)">Keine Nutzer</div>';
+    return;
+  }
+  list.innerHTML = users.map((u, i) => `
+    <div class="user-mgmt-row">
+      <span class="user-role-badge" style="background:rgba(0,245,160,0.1);color:var(--accent)">${u.role}</span>
+      <span><strong>${u.username}</strong> (${u.code})</span>
+      <button class="umr-btn danger" onclick="deleteUser(${i})" style="margin-left:auto">🗑</button>
+    </div>
+  `).join('');
+}
+
+function deleteUser(idx) {
+  if (!confirm('Nutzer "' + users[idx].username + '" löschen?')) return;
+  if (currentUser && currentUser.code === users[idx].code) {
+    currentUser = null;
+    localStorage.removeItem('arcade_session');
+    updateUserBadge();
+  }
+  users.splice(idx, 1);
+  renderUserMgmt();
+}
+
+async function addNews() {
+  const title = document.getElementById('news-title').value.trim();
+  const text = document.getElementById('news-text').value.trim();
+  if (!title || !text) return;
+  news.unshift({ id: 'n-' + Date.now(), title, text, date: new Date().toISOString() });
+  await saveNews();
+  document.getElementById('news-title').value = '';
+  document.getElementById('news-text').value = '';
+  document.getElementById('news-success').style.display = 'block';
+  setTimeout(() => { document.getElementById('news-success').style.display = 'none'; }, 2500);
+  renderNews();
+  renderNewsList();
+}
+
+function renderNewsList() {
+  const list = document.getElementById('news-list');
+  list.innerHTML = news.length ? news.map((n, i) => `
+    <div style="padding:0.6rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;gap:0.5rem;justify-content:space-between">
+      <span style="font-size:0.8rem"><strong>${n.title}:</strong> ${n.text}</span>
+      <button class="delete-item-btn" onclick="deleteNews(${i})" style="flex-shrink:0">🗑</button>
+    </div>
+  `).join('') : '<div style="text-align:center;padding:1rem;color:var(--muted)">Keine News</div>';
+}
+
+async function deleteNews(idx) {
+  news.splice(idx, 1);
+  await saveNews();
+  renderNews();
+  renderNewsList();
+}
+
+function openSettings() { document.getElementById('settings-modal').classList.add('open'); }
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+
+function reopenCurrentGame() { if (currentGame) openPlay(currentGame); }
+function showBar(g) { document.getElementById('np-title').textContent = `${g.emoji} ${g.title}`; document.getElementById('now-playing-bar').classList.add('visible'); }
+function hideBar() { document.getElementById('now-playing-bar').classList.remove('visible'); }
+function openMobileMenu() {}
+function closeMobileMenu() {}
+
+// ═══════════════════════════════════════════════════════
+// SPIELE
+function snakeGame() { return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0a16;display:flex;justify-content:center;align-items:center;height:100vh}canvas{border:2px solid #00f5a0;border-radius:10px}#ui{position:absolute;top:10px;left:10px;color:#00f5a0;font-family:monospace}#score{font-size:18px}</style></head><body><div id="ui"><div id="score">SCORE: 0</div></div><canvas id="c"></canvas><script>const c=document.getElementById('c'),ctx=c.getContext('2d');c.width=c.height=400;let snake=[{x:10,y:10}],dir={x:1,y:0},food={x:15,y:15},score=0;function draw(){ctx.fillStyle='#0a0a16';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#00f5a0';snake.forEach(s=>ctx.fillRect(s.x*20,s.y*20,18,18));ctx.fillStyle='#ffd60a';ctx.fillRect(food.x*20,food.y*20,18,18);document.getElementById('score').innerText='SCORE: '+score;}function update(){const head={x:snake[0].x+dir.x,y:snake[0].y+dir.y};if(head.x<0||head.x>19||head.y<0||head.y>19||snake.some(s=>s.x===head.x&&s.y===head.y)){alert('Game Over!');location.reload();return;}snake.unshift(head);if(head.x===food.x&&head.y===food.y){score+=10;food={x:Math.floor(Math.random()*20),y:Math.floor(Math.random()*20)}}else snake.pop();}setInterval(()=>{update();draw()},100);document.addEventListener('keydown',e=>{if(e.key==='ArrowUp')dir={x:0,y:-1};if(e.key==='ArrowDown')dir={x:0,y:1};if(e.key==='ArrowLeft')dir={x:-1,y:0};if(e.key==='ArrowRight')dir={x:1,y:0}});draw();<\/script></body></html>`; }
+
+function breakoutGame() { return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{margin:0;padding:0}body{background:#0a0a16;display:flex;justify-content:center;align-items:center;height:100vh}canvas{border:2px solid #00f5a0;border-radius:10px}</style></head><body><canvas id="c"></canvas><script>const c=document.getElementById('c'),ctx=c.getContext('2d');c.width=800;c.height=600;let paddle={x:350,y:560,w:100,h:10},ball={x:400,y:300,vx:3,vy:-3,r:5},bricks=[],score=0;for(let i=0;i<10;i++)for(let j=0;j<4;j++)bricks.push({x:i*80,y:j*20,w:75,h:15});function draw(){ctx.fillStyle='#0a0a16';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#00f5a0';ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fillStyle='#ffd60a';ctx.fill();bricks.forEach(b=>{ctx.fillStyle='#f500b8';ctx.fillRect(b.x,b.y,b.w,b.h)});ctx.fillStyle='#fff';ctx.font='20px Arial';ctx.fillText('SCORE: '+score,10,30);}function update(){ball.x+=ball.vx;ball.y+=ball.vy;if(ball.x<0||ball.x>c.width)ball.vx*=-1;if(ball.y<0)ball.vy*=-1;if(ball.y>c.height){alert('Game Over!');location.reload()}if(ball.x>paddle.x&&ball.x<paddle.x+paddle.w&&ball.y>paddle.y&&ball.y<paddle.y+paddle.h)ball.vy*=-1;bricks=bricks.filter(b=>{if(ball.x>b.x&&ball.x<b.x+b.w&&ball.y>b.y&&ball.y<b.y+b.h){ball.vy*=-1;score+=10;return false}return true})}document.addEventListener('mousemove',e=>{paddle.x=e.clientX-400});setInterval(()=>{update();draw()},30);draw();<\/script></body></html>`; }
+
+function memoryGame() { return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0a16;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}#game{display:grid;grid-template-columns:repeat(4,80px);gap:10px}#stats{color:#00f5a0;font-family:monospace;margin-bottom:20px}.card{width:80px;height:80px;background:#1a1a2e;border:2px solid #00f5a0;border-radius:8px;cursor:pointer;font-size:30px;display:flex;align-items:center;justify-content:center}</style></head><body><div id="container" style="text-align:center"><div id="stats">PAIRS: 0 / 8</div><div id="game"></div></div><script>const emojis=['🍕','🚀','🐉','⚡','🎸','🌊','🔥','💎'];let cards=[],flipped=[],matched=0;function init(){cards=[];flipped=[];matched=0;const game=document.getElementById('game');game.innerHTML='';const arr=[...emojis,...emojis].sort(()=>Math.random()-0.5);arr.forEach((e,i)=>{const card=document.createElement('div');card.className='card';card.dataset.index=i;card.dataset.emoji=e;card.textContent='?';card.addEventListener('click',()=>flip(i));game.appendChild(card)});}function flip(i){if(flipped.length===2||flipped.includes(i))return;flipped.push(i);const card=document.querySelectorAll('.card')[i];card.textContent=card.dataset.emoji;if(flipped.length===2){setTimeout(()=>{const c1=document.querySelectorAll('.card')[flipped[0]];const c2=document.querySelectorAll('.card')[flipped[1]];if(c1.dataset.emoji===c2.dataset.emoji){matched++;document.getElementById('stats').innerText='PAIRS: '+matched+' / 8';if(matched===8)alert('YOU WIN!')}else{c1.textContent='?';c2.textContent='?'}flipped=[]},500)}}init();<\/script></body></html>`; }
+
+function reactionGame() { return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{background:#0a0a16;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;flex-direction:column}#box{width:200px;height:200px;background:#12122a;border:3px solid #00f5a0;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:60px;cursor:pointer;margin-bottom:20px}#time{color:#00f5a0;font-family:monospace;font-size:24px;min-height:30px}</style></head><body><div id="box">👆</div><div id="time"></div><script>let state='wait',t0,best=Infinity;const box=document.getElementById('box');function go(){state='go';box.style.background='#003d25';box.style.borderColor='#00f5a0';box.textContent='🟢';t0=Date.now()}function reset(){state='wait';box.style.background='#12122a';box.style.borderColor='#00f5a0';box.textContent='👆'}box.addEventListener('click',()=>{if(state==='wait'){state='counting';box.textContent='⏳';box.style.background='#0e0e28';setTimeout(go,1000+Math.random()*3000)}else if(state==='go'){const ms=Date.now()-t0;if(ms<best)best=ms;document.getElementById('time').innerText=ms+'ms · BEST: '+best;reset()}});reset();<\/script></body></html>`; }
+
+function tetrisGame() { return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{margin:0;padding:0}body{background:#0a0a16;display:flex;justify-content:center;align-items:center;height:100vh}canvas{border:2px solid #00f5a0}</style></head><body>
